@@ -13,16 +13,17 @@
         .tool { margin-bottom: 30px; }
         input, select, textarea, button { padding: 8px; border: 1px solid #000; font-family: monospace; }
         textarea { width: 100%; height: 150px; resize: vertical; position: relative; }
-        label { font-size: 12px; display: block; margin-bottom: 2px; }
         .input-wrapper { position: relative; }
         .stats { position: absolute; bottom: 8px; right: 8px; font-size: 11px; text-align: right; line-height: 1.4; background: #fff; }
         .buttons { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
         button { cursor: pointer; font-size: 13px; background: #fff; width: auto; }
         button:hover { background: #000; color: #fff; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .grid { display: grid; gap: 10px; }
+        .qrInput { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .qrInput-full { grid-column: 1 / -1; }
         .hidden { display: none; }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -85,6 +86,53 @@
                 <div id="imageButtons" class="buttons" style="display: none;">
                     <button onclick="convertImage('jpg')" title="Save as JPG">📥 JPG</button>
                     <button onclick="convertImage('png')" title="Save as PNG">📥 PNG</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="tool">
+            <h2>📲 QR Code Generator</h2>
+            <div class="grid">
+                <select id="qrType" onchange="toggleQrInputs()">
+                    <option value="text">Text/Link</option>
+                    <option value="vcard">Contact</option>
+                    <option value="wifi">WiFi</option>
+                    <option value="event">Event</option>
+                </select>
+                
+                <textarea id="qrTextInput" placeholder="Enter text..." class="qrInput"></textarea>
+                
+                <div id="qrVcardInputs" class="qrInput hidden">
+                    <input type="text" id="vcardName" placeholder="Full Name">
+                    <input type="tel" id="vcardPhone" placeholder="Phone Number">
+                    <input type="email" id="vcardEmail" placeholder="E-mail Address">
+                    <input type="text" id="vcardOrg" placeholder="Organization (optional)">
+                    <input type="url" id="vcardUrl" placeholder="Website (optional)">
+                </div>
+                
+                <div id="qrWifiInputs" class="qrInput hidden">
+                    <input type="text" id="wifiName" placeholder="Network Name (SSID)">
+                    <input type="password" id="wifiPassword" placeholder="Password">
+                    <select id="wifiSecurity">
+                        <option value="WPA">WPA</option>
+                        <option value="WEP">WEP</option>
+                        <option value="nopass">Open</option>
+                    </select>
+                </div>
+                
+                <div id="qrEventInputs" class="qrInput hidden">
+                    <input type="text" id="eventTitle" placeholder="Event Title" class="qrInput-full">
+                    <input type="text" id="eventDesc" placeholder="Description (optional)" class="qrInput-full">
+                    <input type="datetime-local" id="eventStart" placeholder="Start Date/Time">
+                    <input type="datetime-local" id="eventEnd" placeholder="End Date/Time">
+                </div>
+                
+                <div class="buttons">
+                    <button onclick="generateQR()" title="Generate Preview">𖣯</button>
+                    <button onclick="downloadQR()" title="Download 1024x1024">📥</button>
+                </div>
+                <div id="qrPreview" style="text-align: center; display: none; padding: 15px;">
+                    <div id="qrContainer"></div>
                 </div>
             </div>
         </div>
@@ -259,6 +307,101 @@
             const type = result > 0 ? 'increase' : 'decrease';
             document.getElementById('percentResult').textContent = `${Math.abs(result).toFixed(2)}% ${type} from ${a} to ${b}`;
         }
+
+        function toggleQrInputs() {
+            const type = document.getElementById('qrType').value;
+            document.getElementById('qrTextInput').classList.toggle('hidden', type !== 'text');
+            document.getElementById('qrVcardInputs').classList.toggle('hidden', type !== 'vcard');
+            document.getElementById('qrWifiInputs').classList.toggle('hidden', type !== 'wifi');
+            document.getElementById('qrEventInputs').classList.toggle('hidden', type !== 'event');
+        }
+
+        function buildQrString() {
+            const type = document.getElementById('qrType').value;
+            
+            if (type === 'text') {
+                return document.getElementById('qrTextInput').value.trim();
+            }
+            
+            if (type === 'vcard') {
+                const name = document.getElementById('vcardName').value || 'Name Surname';
+                const phone = document.getElementById('vcardPhone').value || '+1234567890';
+                const email = document.getElementById('vcardEmail').value || 'email@something.com';
+                const org = document.getElementById('vcardOrg').value;
+                const url = document.getElementById('vcardUrl').value;
+                
+                let vcard = `BEGIN:VCARD\nVERSION:3.0\nFN:${name}\nTEL:${phone}\nEMAIL:${email}`;
+                if (org) vcard += `\nORG:${org}`;
+                if (url) vcard += `\nURL:${url}`;
+                vcard += '\nEND:VCARD';
+                return vcard;
+            }
+            
+            if (type === 'wifi') {
+                const name = document.getElementById('wifiName').value || 'Network Name';
+                const password = document.getElementById('wifiPassword').value || 'Password';
+                const security = document.getElementById('wifiSecurity').value;
+                return `WIFI:T:${security};S:${name};P:${password};;`;
+            }
+            
+            if (type === 'event') {
+                const title = document.getElementById('eventTitle').value || 'Event Title';
+                const startInput = document.getElementById('eventStart').value;
+                const endInput = document.getElementById('eventEnd').value;
+                const desc = document.getElementById('eventDesc').value;
+                
+                const start = startInput ? startInput.replace(/[T:-]/g, '').slice(0, 15) + 'Z' : '20260211T100000Z';
+                const end = endInput ? endInput.replace(/[T:-]/g, '').slice(0, 15) + 'Z' : '20260211T110000Z';
+                
+                let event = `BEGIN:VEVENT\nDTSTART:${start}\nDTEND:${end}\nSUMMARY:${title}`;
+                if (desc) event += `\nDESCRIPTION:${desc}`;
+                event += '\nEND:VEVENT';
+                return event;
+            }
+        }
+
+        function generateQR() {
+            const input = buildQrString();
+            if (!input) return alert('Fill in the required fields');
+            
+            const container = document.getElementById('qrContainer');
+            container.innerHTML = '';
+            
+            new QRCode(container, {
+                text: input,
+                width: 200,
+                height: 200,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.L
+            });
+            
+            document.getElementById('qrPreview').style.display = 'block';
+        }
+
+        function downloadQR() {
+            const input = buildQrString();
+            if (!input) return alert('Generate QR code first');
+            
+            const canvas = document.createElement('canvas');
+            new QRCode(canvas, {
+                text: input,
+                width: 1024,
+                height: 1024,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.L
+            });
+            
+            setTimeout(() => {
+                const a = document.createElement('a');
+                a.href = canvas.toDataURL('image/png');
+                a.download = 'qrcode.png';
+                a.click();
+            }, 100);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => toggleQrInputs());
     </script>
 </body>
 </html>
