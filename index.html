@@ -37,14 +37,15 @@
             </div>
             <div class="buttons">
                 <button onclick="paste()" title="Paste">📋</button>
-                <button onclick="transform(x => x.replace(/  +/g, ' '))" title="Remove Double Spaces">No _</button>
-                <button onclick="transform(x => x.replace(/\n/g, ' '))" title="Remove Line Breaks">No ↵</button>
-                <button onclick="removeTracking()" title="Remove Link UTM">🔗</button>
                 <button onclick="transform(x => x.toUpperCase())" title="UPPERCASE">A</button>
                 <button onclick="transform(x => x.toLowerCase())" title="lowercase">a</button>
-                <button onclick="transform(x => x.split('').join(' '))" title="Insert Spaces">Add _</button>
-                <button onclick="transform(x => x.replace(/[^\w\s]/g, ''))" title="Remove Punctuation">No ."?</button>
+                <button onclick="transform(x => x.replace(/  +/g, ' '))" title="Remove Double Spaces">No _</button>
+                <button onclick="transform(x => x.split('').join(' '))" title="Insert Single Spaces">Add _</button>
+                <button onclick="transform(x => x.replace(/\n/g, ' '))" title="Remove Line Breaks">No ↵</button>
                 <button onclick="transform(x => x.split(/\s+/).filter(w => w).join('\n'))" title="One Word Per Line">Add ↵</button>
+                <button onclick="transform(x => x.replace(/[^\w\s]/g, ''))" title="Remove Punctuation">No ."?</button>
+                <button onclick="transform(x => x.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))" title="Remove Pinyin Tones">No àā</button>
+                <button onclick="removeTracking()" title="Remove Link UTM">No 🔗</button>
                 <button onclick="sortLines()" title="Sort A-Z">⇅ A-Z</button>
                 <button onclick="copy()" title="Copy">📑</button>
                 <button onclick="input.value='';updateStats()" title="Clear">🗑️</button>
@@ -91,7 +92,7 @@
         </div>
 
         <div class="tool">
-            <h2>📲 QR Code Generator</h2>
+            <h2>🔳 QR Code Generator</h2>
             <div class="grid">
                 <select id="qrType" onchange="toggleQrInputs()">
                     <option value="text">Text/Link</option>
