@@ -158,6 +158,7 @@
     <script>
         const input = document.getElementById('input');
         const stats = document.getElementById('stats');
+        let sortAscending = true;
 
         function updateStats() {
             const text = input.value;
@@ -184,7 +185,13 @@
         }
 
         function sortLines() {
-            transform(x => x.split('\n').sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).join('\n'));
+            const sorted = input.value.split('\n').sort((a, b) => {
+                const cmp = a.localeCompare(b, undefined, { numeric: true });
+                return sortAscending ? cmp : -cmp;
+            }).join('\n');
+            input.value = sorted;
+            sortAscending = !sortAscending;
+            updateStats();
         }
 
         function copy() { navigator.clipboard.writeText(input.value); }
