@@ -13,12 +13,15 @@
         .tool { margin-bottom: 30px; }
         input, select, textarea, button { padding: 8px; border: 1px solid #000; font-family: monospace; }
         textarea { width: 100%; height: 150px; resize: vertical; position: relative; }
-        .input-wrapper { position: relative; }
+        .input-wrapper { position: relative; margin-bottom: 10px; }
         .stats { position: absolute; bottom: 8px; right: 8px; font-size: 11px; text-align: right; line-height: 1.4; background: #fff; }
         .buttons { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+        .grid > .buttons { margin-top: 0; }
+        .input-wrapper + .buttons { margin-top: 0; }
         button { cursor: pointer; font-size: 13px; background: #fff; width: auto; }
         button:hover { background: #000; color: #fff; }
         .grid { display: grid; gap: 10px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .qrInput { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .qrInput-full { grid-column: 1 / -1; }
         .hidden { display: none; }
@@ -61,7 +64,7 @@
                     <option value="allday">All Day</option>
                     <option value="days">Multi-day</option>
                 </select>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div class="grid-2">
                     <input type="date" id="eventDate">
                     <input type="time" id="eventTime" class="timeContainer">
                     <input type="date" id="eventEndDate" class="endDateContainer hidden">
@@ -76,15 +79,15 @@
                 <div id="imageDropZone" style="border: 2px dashed #000; padding: 30px; text-align: center; cursor: pointer; background: #fafafa;" ondrop="handleDrop(event)" ondragover="event.preventDefault()" onclick="document.getElementById('imageInput').click()">
                     Image upload
                 </div>
-                <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageSelect(event)">
-                <img id="imagePreview" style="display: none; max-width: 100%; max-height: 200px;">
-                <div id="imageControls" style="display: none;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <input type="file" id="imageInput" accept="image/*" class="hidden" onchange="handleImageSelect(event)">
+                <img id="imagePreview" class="hidden" style="max-width: 100%; max-height: 200px;">
+                <div id="imageControls" class="hidden">
+                    <div class="grid-2">
                         <input type="number" id="imageWidth" placeholder="Width (px)" min="1">
                         <input type="number" id="imageHeight" placeholder="Height (px)" min="1">
                     </div>
                 </div>
-                <div id="imageButtons" class="buttons" style="display: none;">
+                <div id="imageButtons" class="buttons hidden">
                     <button onclick="convertImage('jpg')" title="Save as JPG">📥 JPG</button>
                     <button onclick="convertImage('png')" title="Save as PNG">📥 PNG</button>
                 </div>
@@ -122,7 +125,7 @@
                 </div>
                 
                 <div id="qrEventInputs" class="qrInput hidden">
-                    <input type="text" id="eventTitle" placeholder="Event Title" class="qrInput-full">
+                    <input type="text" id="qrEventTitle" placeholder="Event Title" class="qrInput-full">
                     <input type="text" id="eventDesc" placeholder="Description (optional)" class="qrInput-full">
                     <input type="datetime-local" id="eventStart" placeholder="Start Date/Time">
                     <input type="datetime-local" id="eventEnd" placeholder="End Date/Time">
@@ -132,7 +135,7 @@
                     <button onclick="generateQR()" title="Generate Preview">𖣯</button>
                     <button onclick="downloadQR()" title="Download 1024x1024">📥</button>
                 </div>
-                <div id="qrPreview" style="text-align: center; display: none; padding: 15px;">
+                <div id="qrPreview" class="hidden" style="text-align: center; padding: 15px;">
                     <div id="qrContainer"></div>
                 </div>
             </div>
@@ -141,7 +144,7 @@
         <div class="tool">
             <h2>🧮 Percentage Calculator</h2>
             <div class="grid">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div class="grid-2">
                     <input type="number" id="percentA" placeholder="Value A">
                     <input type="number" id="percentB" placeholder="Value B">
                 </div>
@@ -150,12 +153,19 @@
                     <button onclick="calcValue()" title="A is what % of B?">A = ?% B</button>
                     <button onclick="calcChange()" title="% change from A to B?">A% → B%</button>
                 </div>
-                <div id="percentResult" style="font-size: 14px; margin-top: 8px; font-weight: bold;"></div>
+                <div id="percentResult" style="font-size: 14px; font-weight: bold; margin-top: 8px;"></div>
             </div>
         </div>
     </div>
 
     <script>
+        function download(href, filename) {
+            const a = document.createElement('a');
+            a.href = href;
+            a.download = filename;
+            a.click();
+        }
+
         const input = document.getElementById('input');
         const stats = document.getElementById('stats');
         let sortAscending = true;
@@ -185,11 +195,10 @@
         }
 
         function sortLines() {
-            const sorted = input.value.split('\n').sort((a, b) => {
-                const cmp = a.localeCompare(b, undefined, { numeric: true });
-                return sortAscending ? cmp : -cmp;
-            }).join('\n');
-            input.value = sorted;
+            let lines = input.value.split('\n');
+            lines.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+            if (!sortAscending) lines.reverse();
+            input.value = lines.join('\n');
             sortAscending = !sortAscending;
             updateStats();
         }
@@ -235,8 +244,8 @@
 
         function toggleDurationOptions() {
             const t = document.getElementById('durationType').value;
-            document.querySelector('.timeContainer').className = t === 'hours' ? '' : 'hidden';
-            document.querySelector('.endDateContainer').className = t === 'days' ? 'endDateContainer' : 'endDateContainer hidden';
+            document.querySelector('.timeContainer').classList.toggle('hidden', t !== 'hours');
+            document.querySelector('.endDateContainer').classList.toggle('hidden', t !== 'days');
         }
 
         let currentImage = null;
@@ -266,9 +275,9 @@
                     document.getElementById('imageWidth').value = img.width;
                     document.getElementById('imageHeight').value = img.height;
                     document.getElementById('imagePreview').src = canvas.toDataURL();
-                    document.getElementById('imagePreview').style.display = 'block';
-                    document.getElementById('imageControls').style.display = 'block';
-                    document.getElementById('imageButtons').style.display = 'flex';
+                    document.getElementById('imagePreview').classList.remove('hidden');
+                    document.getElementById('imageControls').classList.remove('hidden');
+                    document.getElementById('imageButtons').classList.remove('hidden');
                 };
                 img.src = e.target.result;
             };
@@ -284,10 +293,7 @@
             canvas.height = h;
             canvas.getContext('2d').drawImage(currentImage, 0, 0, w, h);
             canvas.toBlob(blob => {
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = `${currentImageName}.${format}`;
-                a.click();
+                download(URL.createObjectURL(blob), `${currentImageName}.${format}`);
             }, `image/${format}`, format === 'jpg' ? 0.95 : undefined);
         }
 
@@ -353,7 +359,7 @@
             }
             
             if (type === 'event') {
-                const title = document.getElementById('eventTitle').value || 'Event Title';
+                const title = document.getElementById('qrEventTitle').value || 'Event Title';
                 const startInput = document.getElementById('eventStart').value;
                 const endInput = document.getElementById('eventEnd').value;
                 const desc = document.getElementById('eventDesc').value;
@@ -368,45 +374,29 @@
             }
         }
 
-        function generateQR() {
+        function renderQR(width, container) {
             const input = buildQrString();
             if (!input) return alert('Fill in the required fields');
-            
-            const container = document.getElementById('qrContainer');
             container.innerHTML = '';
-            
             new QRCode(container, {
                 text: input,
-                width: 200,
-                height: 200,
+                width: width,
+                height: width,
                 colorDark: '#000000',
                 colorLight: '#ffffff',
                 correctLevel: QRCode.CorrectLevel.L
             });
-            
-            document.getElementById('qrPreview').style.display = 'block';
+        }
+
+        function generateQR() {
+            renderQR(200, document.getElementById('qrContainer'));
+            document.getElementById('qrPreview').classList.remove('hidden');
         }
 
         function downloadQR() {
-            const input = buildQrString();
-            if (!input) return alert('Generate QR code first');
-            
             const canvas = document.createElement('canvas');
-            new QRCode(canvas, {
-                text: input,
-                width: 1024,
-                height: 1024,
-                colorDark: '#000000',
-                colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.L
-            });
-            
-            setTimeout(() => {
-                const a = document.createElement('a');
-                a.href = canvas.toDataURL('image/png');
-                a.download = 'qrcode.png';
-                a.click();
-            }, 100);
+            renderQR(1024, canvas);
+            setTimeout(() => download(canvas.toDataURL('image/png'), 'qrcode.png'), 100);
         }
 
         document.addEventListener('DOMContentLoaded', () => toggleQrInputs());
